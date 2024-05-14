@@ -1,0 +1,110 @@
+[
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "math",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "math",
+        "description": "math",
+        "detail": "math",
+        "documentation": {}
+    },
+    {
+        "label": "torch",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torch",
+        "description": "torch",
+        "detail": "torch",
+        "documentation": {}
+    },
+    {
+        "label": "ResidualBlock",
+        "kind": 6,
+        "importPath": "auto_encoder",
+        "description": "auto_encoder",
+        "peekOfCode": "class ResidualBlock(torch.nn.Module):\n    def __init__(self, in_channels, out_channels):\n        super().__init__()\n        self.group_norm_1 = torch.nn.GroupNorm(32, in_channels)\n        self.conv_1 = torch.nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)\n        self.group_norm_2 = torch.nn.GroupNorm(32, out_channels)\n        self.conv_2 = torch.nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)\n        if in_channels == out_channels:\n            self.residual_layer = torch.nn.Identity()\n        else:",
+        "detail": "auto_encoder",
+        "documentation": {}
+    },
+    {
+        "label": "SelfAttention",
+        "kind": 6,
+        "importPath": "auto_encoder",
+        "description": "auto_encoder",
+        "peekOfCode": "class SelfAttention(torch.nn.Module):\n    def __init__(self, n_heads, d_embed, in_proj_bias=True, out_proj_bias=True):\n        super().__init__()\n        self.in_proj = torch.nn.Linear(d_embed, 3 * d_embed, bias=in_proj_bias)\n        self.out_proj = torch.nn.Linear(d_embed, d_embed, bias=out_proj_bias)\n        self.n_heads = n_heads\n        self.d_head = d_embed // n_heads\n    def forward(self, x, causal_mask=False):\n        input_shape = x.shape\n        batch_size, sequence_length, _ = input_shape",
+        "detail": "auto_encoder",
+        "documentation": {}
+    },
+    {
+        "label": "AttentionBlock",
+        "kind": 6,
+        "importPath": "auto_encoder",
+        "description": "auto_encoder",
+        "peekOfCode": "class AttentionBlock(torch.nn.Module):\n    def __init__(self, channels):\n        super().__init__()\n        self.group_norm = torch.nn.GroupNorm(32, channels)\n        self.attention = SelfAttention(1, channels)\n    def forward(self, x):\n        residue = x\n        x = self.group_norm(x)\n        n, c, h, w = x.shape\n        x = x.view((n, c, h * w))",
+        "detail": "auto_encoder",
+        "documentation": {}
+    },
+    {
+        "label": "Encoder",
+        "kind": 6,
+        "importPath": "auto_encoder",
+        "description": "auto_encoder",
+        "peekOfCode": "class Encoder(torch.nn.Sequential):\n    def __init__(self):\n        super().__init__(\n            torch.nn.Conv2d(3, 64, kernel_size=3, padding=1),\n            ResidualBlock(64, 64),\n            torch.nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=0),\n            ResidualBlock(64, 128),\n            torch.nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=0),\n            ResidualBlock(128, 256),\n            torch.nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=0),",
+        "detail": "auto_encoder",
+        "documentation": {}
+    },
+    {
+        "label": "Decoder",
+        "kind": 6,
+        "importPath": "auto_encoder",
+        "description": "auto_encoder",
+        "peekOfCode": "class Decoder(torch.nn.Sequential):\n    def __init__(self):\n        super().__init__(\n            torch.nn.Conv2d(4, 4, kernel_size=1, padding=0),\n            torch.nn.Conv2d(4, 256, kernel_size=3, padding=1),\n            ResidualBlock(256, 256),\n            AttentionBlock(256),\n            ResidualBlock(256, 256),\n            torch.nn.Upsample(scale_factor=2),\n            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),",
+        "detail": "auto_encoder",
+        "documentation": {}
+    },
+    {
+        "label": "encode_images",
+        "kind": 2,
+        "importPath": "auto_encoder",
+        "description": "auto_encoder",
+        "peekOfCode": "def encode_images(images: torch.Tensor):\n    images = images.cuda()\n    _, _, z = encoder(images)\n    return z\ndef decode_images(x: torch.Tensor):\n    x = decoder(x)\n    return x\nprint(\"Loaded VAE!\")",
+        "detail": "auto_encoder",
+        "documentation": {}
+    },
+    {
+        "label": "decode_images",
+        "kind": 2,
+        "importPath": "auto_encoder",
+        "description": "auto_encoder",
+        "peekOfCode": "def decode_images(x: torch.Tensor):\n    x = decoder(x)\n    return x\nprint(\"Loaded VAE!\")",
+        "detail": "auto_encoder",
+        "documentation": {}
+    },
+    {
+        "label": "encoder",
+        "kind": 5,
+        "importPath": "auto_encoder",
+        "description": "auto_encoder",
+        "peekOfCode": "encoder = Encoder().float().cuda()\ndecoder = Decoder().float().cuda()\nencoder.load_state_dict(torch.load(os.path.join(\"diffusion_vae\", \"encoder_ckpt.pt\")))\ndecoder.load_state_dict(torch.load(os.path.join(\"diffusion_vae\", \"decoder_ckpt.pt\")))\nencoder.eval()\ndecoder.eval()\ndef encode_images(images: torch.Tensor):\n    images = images.cuda()\n    _, _, z = encoder(images)\n    return z",
+        "detail": "auto_encoder",
+        "documentation": {}
+    },
+    {
+        "label": "decoder",
+        "kind": 5,
+        "importPath": "auto_encoder",
+        "description": "auto_encoder",
+        "peekOfCode": "decoder = Decoder().float().cuda()\nencoder.load_state_dict(torch.load(os.path.join(\"diffusion_vae\", \"encoder_ckpt.pt\")))\ndecoder.load_state_dict(torch.load(os.path.join(\"diffusion_vae\", \"decoder_ckpt.pt\")))\nencoder.eval()\ndecoder.eval()\ndef encode_images(images: torch.Tensor):\n    images = images.cuda()\n    _, _, z = encoder(images)\n    return z\ndef decode_images(x: torch.Tensor):",
+        "detail": "auto_encoder",
+        "documentation": {}
+    }
+]
